@@ -60,17 +60,21 @@ class CeltxHook:
                 yield item
 
     def get_script_html(self, script):
+        return self.try_to_get_from_session(script['content']).content
+
+    def try_to_get_from_session(self, to_get):
         try:
-            return self.session.get(script['content']).content
+            return self.session.get(to_get)
         except AttributeError:
             self.login()
-            return self.get_script_html(script)
+            return self.try_to_get_from_session(to_get)
 
     def login(self):
         try:
             self.session.login()
         except AttributeError:
-            self.session = AuthSession(self.login_url, *self.login_callback())
+            login_data = self.login_callback()
+            self.session = AuthSession(self.login_url, *login_data[0])
 
 
 def get_scenes_and_sounds_from_html(html):
@@ -92,11 +96,11 @@ def get_scenes_and_sounds_from_html(html):
     return scenes_and_sounds
 
 
-try:
-    celtx = CeltxHook()
-    scripts = celtx.get_celtx_scripts()
-    for script in scripts:
-        script_html = celtx.get_script_html(script)
-        get_scenes_and_sounds_from_html(script_html)
-except LoginError:
-    print("Wrong Credentials")
+# try:
+#     celtx = CeltxHook()
+#     scripts = celtx.get_celtx_scripts()
+#     for script in scripts:
+#         script_html = celtx.get_script_html(script)
+#         get_scenes_and_sounds_from_html(script_html)
+# except LoginError:
+#     print("Wrong Auth")

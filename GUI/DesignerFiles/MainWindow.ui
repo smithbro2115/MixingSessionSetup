@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>496</width>
-    <height>268</height>
+    <width>635</width>
+    <height>271</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,7 +16,17 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="0" column="0">
-     <layout class="QGridLayout" name="gridLayout">
+     <layout class="QGridLayout" name="gridLayout" columnstretch="5,4">
+      <item row="2" column="0">
+       <widget class="QPushButton" name="populateCeltxPushButton">
+        <property name="text">
+         <string>Populate</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QListWidget" name="celtxScriptsListWidget"/>
+      </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label">
         <property name="font">
@@ -29,15 +39,27 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
-       <widget class="QPushButton" name="loginToCeltxPushButton">
+      <item row="0" column="1">
+       <widget class="QLabel" name="label_2">
+        <property name="font">
+         <font>
+          <pointsize>14</pointsize>
+         </font>
+        </property>
         <property name="text">
-         <string>Login to Celtx</string>
+         <string>Script:</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QListWidget" name="celtxScriptsListWidget"/>
+      <item row="1" column="1">
+       <widget class="QTextBrowser" name="scriptTextBrowser"/>
+      </item>
+      <item row="2" column="1">
+       <widget class="QPushButton" name="makeSFXListPushButton">
+        <property name="text">
+         <string>Make SFX List</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -48,7 +70,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>496</width>
+     <width>635</width>
      <height>21</height>
     </rect>
    </property>
