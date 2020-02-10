@@ -63,7 +63,6 @@ class UI(MainWindowUI.Ui_MainWindow):
     def display_script(self, script):
         self.scriptTextBrowser.clear()
         self.current_html = self.celtx_scraper.get_script_html(script)
-        print(self.current_html)
         html = self.current_html.decode()
         self.scriptTextBrowser.setHtml(html)
 

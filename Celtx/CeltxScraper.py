@@ -84,12 +84,12 @@ def get_scenes_and_sounds_from_html(html):
     for p_element in p_elements:
         try:
             p_class = p_element.get('class')
-            p_text = p_element.text
+            p_text = p_element.text.upper()
             if p_class == 'sceneheading':
                 scene = {'type': "scene_header", 'content': p_text, 'scene_number': p_element.get('scenenumber')}
                 scenes_and_sounds.append(scene)
             elif p_class == 'action' and p_text[:6].lower() == 'sound:':
-                sound = {'type': 'sound', 'content': p_element.text}
+                sound = {'type': 'sound', 'content': p_text}
                 scenes_and_sounds.append(sound)
         except (AttributeError, TypeError):
             continue
