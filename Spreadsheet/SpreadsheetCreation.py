@@ -1,4 +1,7 @@
 import openpyxl
+from openpyxl.formatting.rule import Rule
+from openpyxl.styles import PatternFill
+from openpyxl.styles.differential import DifferentialStyle
 from shutil import copyfile
 from Functionality.useful_utils import resource_path
 
@@ -9,6 +12,14 @@ def create_new_spreadsheet_from_template(path, template_path):
 
 def create_new_sfx_list_spreadsheet(path):
     create_new_spreadsheet_from_template(path, resource_path("SFX LIST TEMPLATE.xlsx"))
+
+
+def set_scene_rule(sheet):
+    red_fill = PatternFill(bgColor="FFC7CE")
+    dxf = DifferentialStyle(fill=red_fill)
+    r = Rule(type="expression", dxf=dxf, stopIfTrue=True)
+    r.formula = ['$LEFT(C2, 5)="SOUND"']
+    sheet.conditional_formatting.add("A2:Y1000", r)
 
 
 def populate_spreadsheet(spreadsheet_path, scenes_and_sounds):
@@ -24,4 +35,5 @@ def populate_spreadsheet(spreadsheet_path, scenes_and_sounds):
         sheet.cell(row_num, 2).value = row_num-1
         sheet.cell(row_num, 3).value = val["content"]
         sheet.cell(row_num, 3).style = sound_name_format
+    set_scene_rule(sheet)
     spreadsheet.save(spreadsheet_path)
