@@ -9,6 +9,7 @@ from Celtx import CeltxScraper
 from ProTools.SessionCreation import make_session
 from Auth.Credentials import get_credentials, Canceled
 from Spreadsheet import SpreadsheetCreation
+from Functionality.Email import email_excel_document
 
 
 class UI(MainWindowUI.Ui_MainWindow):
@@ -24,21 +25,40 @@ class UI(MainWindowUI.Ui_MainWindow):
     def setup_additional(self, main_window):
         self.main_window = main_window
         self.main_window.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-        self.newSessionNameLineEdit.set_with_celtx = False
         self.celtxScriptsListWidget.itemDoubleClicked.connect(self.celtx_list_item_double_clicked)
         self.populateCeltxPushButton.clicked.connect(self.populate_celtx_scripts_list)
         self.makeSFXListPushButton.clicked.connect(self.make_sfx_list_pushed)
         self.set_up_line_edits()
+        self.newSessionNameLineEdit.set_with_celtx = False
         self.file_location_line_edits = [self.sessionTemplateLineEdit,
                                          self.oldSessionLocationLineEdit,
-                                         self.newSessionLocationLineEdit]
+                                         self.newSessionLocationLineEdit,
+                                         self.emailAddressLineEdit,
+                                         self.newSessionNameLineEdit]
+        self.saved_field_line_edits(self.file_location_line_edits[:-1])
         self.set_up_file_location_line_edits(self.file_location_line_edits)
         self.enable_make_session_button_if_file_locations()
         self.makeSFXListPushButton.setEnabled(False)
+        self.setupPushButton.clicked.connect(self.setup_clicked)
         self.makeNewSessionPushButton.clicked.connect(self.make_new_session_clicked)
         self.populate_celtx_scripts_list()
+        self.validate()
+
+    def saved_field_line_edits(self, line_edits):
+        for line_edit in line_edits:
+            line_edit.save_field = True
+        self.emailAddressLineEdit.save_field = True
 
     def set_up_line_edits(self):
+        self.newSessionNameLineEdit.text_validator = CustomGUI.FieldValidator()
+        self.newSessionNameLineEdit.text_validator.add_rule(CustomGUI.field_not_empty)
+        required_directory_validator = CustomGUI.FieldValidator()
+        required_directory_validator.add_rule(CustomGUI.field_is_directory)
+        self.sessionTemplateLineEdit.text_validator = required_directory_validator
+        self.newSessionLocationLineEdit.text_validator = required_directory_validator
+        self.oldSessionLocationLineEdit.text_validator = CustomGUI.FieldValidator()
+        self.oldSessionLocationLineEdit.text_validator.add_rule(CustomGUI.field_is_file)
+        self.oldSessionLocationLineEdit.text_validator.add_rule(lambda x: os.path.splitext(x.text())[1] == ".ptx")
         self.newSessionNameLineEdit.editingFinished.connect(
             lambda: self.file_location_line_edit_changed(self.newSessionNameLineEdit))
         self.sessionTemplateLineEdit.editingFinished.connect(
@@ -52,15 +72,22 @@ class UI(MainWindowUI.Ui_MainWindow):
             lambda: self.file_location_line_edit_changed(self.newSessionLocationLineEdit))
         self.newSessionLocationToolButton.clicked.connect(
             lambda: self.file_location_line_edit_button_clicked(self.newSessionLocationLineEdit))
+        self.emailAddressLineEdit.editingFinished.connect(
+            lambda: self.file_location_line_edit_changed(self.emailAddressLineEdit))
+
+    def setup_clicked(self):
+        if self.validate():
+            self.make_sfx_list_pushed()
+            self.make_new_session_clicked()
 
     def make_new_session_clicked(self):
         try:
             make_session(self.sessionTemplateLineEdit.text(),
-                         self.oldSessionLocationLineEdit.text(),
                          self.newSessionLocationLineEdit.text(),
                          self.newSessionNameLineEdit.text())
         except FileExistsError:
             CustomGUI.show_error(self.main_window, "This session already exists!")
+        os.startfile(self.oldSessionLocationLineEdit.text())
 
     def populate_celtx_scripts_list(self):
         try:
@@ -75,15 +102,19 @@ class UI(MainWindowUI.Ui_MainWindow):
         for line_edit in line_edits:
             self.load_last_used_text_into_line_edit(line_edit)
 
+    def validate(self):
+        self.enable_make_session_button_if_file_locations()
+        valid = self.makeNewSessionPushButton.isEnabled() and self.makeSFXListPushButton.isEnabled()
+        self.setupPushButton.setEnabled(valid)
+        return valid
+
     def validate_file_location_line_edits(self):
-        for line_edit in [self.sessionTemplateLineEdit, self.newSessionLocationLineEdit]:
-            if not os.path.isdir(line_edit.text()):
-                return False
-        if self.newSessionNameLineEdit.text() == "":
-            return False
-        old_text = self.oldSessionLocationLineEdit.text()
-        if not os.path.isfile(old_text) and os.path.splitext(old_text)[1] != ".ptx":
-            return False
+        for line_edit in self.file_location_line_edits:
+            try:
+                if not line_edit.text_validator.validate(line_edit):
+                    return False
+            except AttributeError:
+                continue
         return True
 
     def enable_make_session_button_if_file_locations(self):
@@ -104,16 +135,17 @@ class UI(MainWindowUI.Ui_MainWindow):
     @staticmethod
     def load_last_used_text_into_line_edit(line_edit):
         try:
-            last_used = useful_utils.read_from_cache("LAST_USED_LINE_EDIT_TEXT", line_edit.objectName())
-            line_edit.setText(last_used)
-        except (NoOptionError, NoSectionError):
+            if line_edit.save_field:
+                last_used = useful_utils.read_from_cache("LAST_USED_LINE_EDIT_TEXT", line_edit.objectName())
+                line_edit.setText(last_used)
+        except (NoOptionError, NoSectionError, AttributeError):
             pass
 
     def file_location_line_edit_changed(self, line_edit):
         name = line_edit.objectName()
         useful_utils.write_to_cache("LAST_USED_LINE_EDIT_TEXT", name, line_edit.text())
         self.newSessionNameLineEdit.set_with_celtx = False
-        self.enable_make_session_button_if_file_locations()
+        self.validate()
 
     @staticmethod
     def get_pro_tools_session_location(location):
@@ -123,17 +155,25 @@ class UI(MainWindowUI.Ui_MainWindow):
 
     def make_sfx_list_pushed(self):
         try:
-            dialog = CustomGUI.GetFileLocationDialog(f"test SFX List.xlsx", "Make SFX List",
+            dialog = CustomGUI.GetFileLocationDialog(f"{self.current_script['title']} SFX List.xlsx", "Make SFX List",
                                                      useful_utils.read_from_cache("LAST_USED", "sfx_list_folder"))
             save_path = dialog.get_save_path()
-            self.write_last_used_sfx_list_path(save_path)
-            SpreadsheetCreation.create_new_sfx_list_spreadsheet(save_path)
-            SpreadsheetCreation.populate_spreadsheet(save_path,
-                                                     CeltxScraper.get_scenes_and_sounds_from_html(self.current_html))
+            if save_path != "":
+                self.make_sfx_list(save_path)
         except (NoOptionError, NoSectionError):
             useful_utils.write_to_cache("LAST_USED", "sfx_list_folder",
                                         f"{useful_utils.get_app_data_folder('SFX Lists')}/")
             self.make_sfx_list_pushed()
+
+    def make_sfx_list(self, save_path):
+        self.write_last_used_sfx_list_path(save_path)
+        SpreadsheetCreation.create_new_sfx_list_spreadsheet(save_path)
+        SpreadsheetCreation.populate_spreadsheet(save_path,
+                                                 CeltxScraper.get_scenes_and_sounds_from_html(self.current_html))
+        try:
+            email_excel_document(save_path, self.emailAddressLineEdit.text())
+        except:
+            pass
 
     @staticmethod
     def write_last_used_sfx_list_path(path):
@@ -144,6 +184,7 @@ class UI(MainWindowUI.Ui_MainWindow):
         self.current_script = item.data(8)
         self.display_script(self.current_script)
         self.makeSFXListPushButton.setEnabled(True)
+        self.validate()
 
     def display_script(self, script):
         self.scriptTextBrowser.clear()
@@ -152,7 +193,6 @@ class UI(MainWindowUI.Ui_MainWindow):
         self.scriptTextBrowser.setHtml(html)
         if self.newSessionNameLineEdit.text() == "" or self.newSessionNameLineEdit.set_with_celtx:
             self.newSessionNameLineEdit.setText(CeltxScraper.format_script_title(script['title']))
-            self.enable_make_session_button_if_file_locations()
             self.newSessionNameLineEdit.set_with_celtx = True
 
     @staticmethod

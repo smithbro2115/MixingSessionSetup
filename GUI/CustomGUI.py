@@ -2,6 +2,50 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import pyqtSignal
 from .DesignerFiles import loginDialog
 import qdarkstyle
+import os
+
+
+class FieldValidator:
+    def __init__(self):
+        self.rules = []
+
+    def validate(self, field):
+        for rule, args in self.rules:
+            if not rule(field, *args):
+                return False
+        return True
+
+    def add_rule(self, rule, *args):
+        self.rules.append((rule, args))
+
+
+class RequiredField(QtWidgets.QLineEdit):
+    def __init__(self):
+        super(RequiredField, self).__init__()
+        self.text_validator = FieldValidator()
+        self.text_validator.add_rule(field_not_empty)
+
+    def validate(self):
+        if self.text_validator.validate(self):
+            return True
+        else:
+            return False
+
+
+class SavedFieldLineEdit(QtWidgets.QLineEdit):
+    pass
+
+
+def field_not_empty(field):
+    return field.text() != "" and field.text() != " "
+
+
+def field_is_directory(field):
+    return os.path.isdir(field.text())
+
+
+def field_is_file(field):
+    return os.path.isfile(field.text())
 
 
 class DialogTemplate(QtWidgets.QDialog):
