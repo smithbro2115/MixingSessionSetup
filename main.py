@@ -212,6 +212,7 @@ class MainWindow(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     import sys
 
+    print(os.listdir("Z:/"))
     app = QtWidgets.QApplication(sys.argv)
     ui = UI()
     mainWindow = MainWindow(ui)
