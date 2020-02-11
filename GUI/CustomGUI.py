@@ -39,6 +39,21 @@ class GetFileLocationDialog(QtWidgets.QFileDialog):
         result = self.getSaveFileName(directory=f'{self.default_location}{self.default_name}', caption=self.caption)[0]
         return result
 
+    def get_file_path(self, file_types):
+        result = self.getOpenFileName(self, self.caption, self.default_location, file_types)
+        return result
+
+
+class GetFolderLocationDialog(QtWidgets.QFileDialog):
+    def __init__(self, caption, default_location=None):
+        super(GetFolderLocationDialog, self).__init__()
+        self.caption = caption
+        self.default_location = default_location if default_location else '/'
+
+    def get_save_path(self):
+        result = self.getExistingDirectory(directory=f'{self.default_location}', caption=self.caption)
+        return result
+
 
 def add_scripts_to_list_widget(scripts, list_widget: QtWidgets.QListWidget):
     list_widget.clear()

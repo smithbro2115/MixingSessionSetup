@@ -96,6 +96,30 @@ def get_scenes_and_sounds_from_html(html):
     return scenes_and_sounds
 
 
+def format_script_title(title: str):
+    digit_groups = get_groups_of_digits_from_string(title)
+    new_title = title
+    if len(digit_groups) > 0:
+        digit = int("".join(digit_groups[0]))
+        new_title = title.replace(str(digit), f"{digit:03}")
+    return new_title.upper()
+
+
+def get_groups_of_digits_from_string(string):
+    number_groups = []
+    last_character_was_digit = False
+    for character in string:
+        if character.isdigit():
+            if last_character_was_digit:
+                number_groups[-1].append(character)
+            else:
+                number_groups.append([character])
+                last_character_was_digit = True
+        else:
+            last_character_was_digit = False
+    return number_groups
+
+
 # try:
 #     celtx = CeltxHook()
 #     scripts = celtx.get_celtx_scripts()

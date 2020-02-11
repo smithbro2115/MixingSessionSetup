@@ -1,6 +1,8 @@
 import os
 import sys
 import configparser
+from PyQt5.QtCore import QRunnable, pyqtSignal, pyqtSlot, QObject
+import traceback
 
 
 def try_to_add_section_to_config(ini_file, section):
@@ -57,3 +59,44 @@ def resource_path(relative_path):
     except AttributeError:
         base_path = os.path.abspath('.')
     return os.path.join(base_path, relative_path)
+
+
+class WorkerSignals(QObject):
+    finished = pyqtSignal()
+    error = pyqtSignal(tuple)
+    result = pyqtSignal(object)
+    progress = pyqtSignal(int)
+
+
+class Worker(QRunnable):
+
+    def __init__(self, fn, *args, **kwargs):
+        super(Worker, self).__init__()
+
+        # Store constructor arguments (re-used for processing)
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
+
+        self.interrupt = False
+
+        # Add the callback to our kwargs
+        self.kwargs['progress_callback'] = self.signals.progress
+
+    @pyqtSlot()
+    def run(self):
+
+        # Retrieve args/kwargs here; and fire processing using them
+        try:
+            result = self.fn(*self.args)
+        except:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+        else:
+            self.signals.result.emit(result)  # Return the result of the processing
+        finally:
+            if not self.interrupt:
+                self.signals.finished.emit()  # Done
+
